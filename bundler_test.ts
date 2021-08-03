@@ -1525,6 +1525,111 @@ tests({
           },
         },
         {
+          name: "export as specifier",
+          async fn() {
+            const inputs = [
+              "testdata/typescript/export_as_specifier/a.ts",
+            ];
+            const output =
+              "dist/deps/1d1f6b887bfb53e584d715b91cddce3ce8c17d9229491d09a9e09a3be0e22e7b.js";
+
+            const graph = await bundler.createGraph(inputs);
+            assertEquals(graph, {
+              "testdata/typescript/export_as_specifier/a.ts": [
+                {
+                  dependencies: {
+                    "testdata/typescript/export_as_specifier/b.ts": {
+                      Import: {
+                        specifiers: {
+                          c2: "c2",
+                        },
+                      },
+                    },
+                  },
+                  export: {},
+                  input: "testdata/typescript/export_as_specifier/a.ts",
+                  output,
+                  type: "Import",
+                },
+              ],
+              "testdata/typescript/export_as_specifier/b.ts": [
+                {
+                  dependencies: {
+                    "testdata/typescript/export_as_specifier/c.ts": {
+                      Import: {
+                        specifiers: {
+                          c2: "c",
+                        },
+                      },
+                    },
+                  },
+                  export: {
+                    specifiers: {
+                      c2: "c2",
+                    },
+                  },
+                  input: "testdata/typescript/export_as_specifier/b.ts",
+                  output:
+                    "dist/deps/b300c81b43a658cdf137b357fbd9e001e52dc28e60e922d5e65d13202ed352a6.js",
+                  type: "Import",
+                },
+              ],
+              "testdata/typescript/export_as_specifier/c.ts": [
+                {
+                  dependencies: {},
+                  export: {
+                    specifiers: {
+                      c: "c",
+                    },
+                  },
+                  input: "testdata/typescript/export_as_specifier/c.ts",
+                  output:
+                    "dist/deps/3ecfd13c6cfd02dc184823a49b6a32e8396afc3917021e635afa8105d1ec1246.js",
+                  type: "Import",
+                },
+              ],
+            });
+            const chunks = await bundler.createChunks(inputs, graph);
+            assertEquals(chunks, [
+              {
+                item: {
+                  history: ["testdata/typescript/export_as_specifier/a.ts"],
+                  type: "Import",
+                },
+                dependencyItems: [
+                  {
+                    history: [
+                      "testdata/typescript/export_as_specifier/b.ts",
+                      "testdata/typescript/export_as_specifier/a.ts",
+                    ],
+                    type: "Import",
+                  },
+                ],
+              },
+            ]);
+            const bundles = await bundler.createBundles(chunks, graph);
+            assertEquals(Object.keys(bundles).length, 1);
+            const bundle = bundles[output] as string;
+            assertEqualsIgnoreWhitespace(
+              bundle,
+              `/* testdata/typescript/export_as_specifier/c.ts */
+              const mod1 = (async () => {
+                const c = "c";
+                return { c };
+              })();
+              const mod = (async () => {
+                const { c: c2 } = await mod1;
+                return { c2 };
+              })();
+              export default (async () => {
+                const { c2 } = await mod;
+                console.log(c2);
+                return {};
+              })();`,
+            );
+          },
+        },
+        {
           name: "export namespace specifier",
           async fn() {
             const inputs = [
@@ -1767,6 +1872,172 @@ tests({
         },
 
         {
+          name: "export default class",
+          async fn() {
+            const inputs = [
+              "testdata/typescript/export_default_class/a.ts",
+            ];
+            const output =
+              "dist/deps/8fb15a7ad25e3c2486ed30cf0a6ed27fa97c8a176d10ce11704dbb6482ed0895.js";
+
+            const graph = await bundler.createGraph(inputs);
+            assertEquals(graph, {
+              "testdata/typescript/export_default_class/a.ts": [
+                {
+                  dependencies: {
+                    "testdata/typescript/export_default_class/b.ts": {
+                      Import: {
+                        specifiers: {
+                          b: "default",
+                        },
+                      },
+                    },
+                  },
+                  export: {
+                    specifiers: {
+                      b: "b",
+                    },
+                  },
+                  input: "testdata/typescript/export_default_class/a.ts",
+                  output,
+                  type: "Import",
+                },
+              ],
+              "testdata/typescript/export_default_class/b.ts": [
+                {
+                  dependencies: {},
+                  export: {
+                    default: "b",
+                  },
+                  input: "testdata/typescript/export_default_class/b.ts",
+                  output:
+                    "dist/deps/9a7abf52380486f522eaff375bb2bc553e8111f68974e69d99d335a16f27eff4.js",
+                  type: "Import",
+                },
+              ],
+            });
+            const chunks = await bundler.createChunks(inputs, graph);
+            assertEquals(chunks, [
+              {
+                item: {
+                  history: [
+                    "testdata/typescript/export_default_class/a.ts",
+                  ],
+                  type: "Import",
+                },
+                dependencyItems: [
+                  {
+                    history: [
+                      "testdata/typescript/export_default_class/b.ts",
+                      "testdata/typescript/export_default_class/a.ts",
+                    ],
+                    type: "Import",
+                  },
+                ],
+              },
+            ]);
+            const bundles = await bundler.createBundles(chunks, graph);
+            assertEquals(Object.keys(bundles).length, 1);
+            const bundle = bundles[output] as string;
+            assertEqualsIgnoreWhitespace(
+              bundle,
+              `/* testdata/typescript/export_default_class/b.ts */
+              const mod = (async () => {
+                class b { static value = "b"; }
+                return { default: b };
+              })();
+              export default (async () => {
+                const { default: b } = await mod;
+                return { b };
+              })();`,
+            );
+          },
+        },
+
+        {
+          name: "export default function",
+          async fn() {
+            const inputs = [
+              "testdata/typescript/export_default_function/a.ts",
+            ];
+            const output =
+              "dist/deps/90af3b98694e54446931d597951df0f3dc4791e140fb398be6f171047b2c6caa.js";
+
+            const graph = await bundler.createGraph(inputs);
+            assertEquals(graph, {
+              "testdata/typescript/export_default_function/a.ts": [
+                {
+                  dependencies: {
+                    "testdata/typescript/export_default_function/b.ts": {
+                      Import: {
+                        specifiers: {
+                          b: "default",
+                        },
+                      },
+                    },
+                  },
+                  export: {
+                    specifiers: {
+                      b: "b",
+                    },
+                  },
+                  input: "testdata/typescript/export_default_function/a.ts",
+                  output,
+                  type: "Import",
+                },
+              ],
+              "testdata/typescript/export_default_function/b.ts": [
+                {
+                  dependencies: {},
+                  export: {
+                    default: "b",
+                  },
+                  input: "testdata/typescript/export_default_function/b.ts",
+                  output:
+                    "dist/deps/be37210a25479a644f6c18d78b8a37b6372aedd9c4f59c8c3d70e32688ae85e8.js",
+                  type: "Import",
+                },
+              ],
+            });
+            const chunks = await bundler.createChunks(inputs, graph);
+            assertEquals(chunks, [
+              {
+                item: {
+                  history: [
+                    "testdata/typescript/export_default_function/a.ts",
+                  ],
+                  type: "Import",
+                },
+                dependencyItems: [
+                  {
+                    history: [
+                      "testdata/typescript/export_default_function/b.ts",
+                      "testdata/typescript/export_default_function/a.ts",
+                    ],
+                    type: "Import",
+                  },
+                ],
+              },
+            ]);
+            const bundles = await bundler.createBundles(chunks, graph);
+            assertEquals(Object.keys(bundles).length, 1);
+            const bundle = bundles[output] as string;
+            assertEqualsIgnoreWhitespace(
+              bundle,
+              `/* testdata/typescript/export_default_function/b.ts */
+              const mod = (async () => {
+                function b() { return "b"; }
+                return { default: b };
+              })();
+              export default (async () => {
+                const { default: b } = await mod;
+                return { b };
+              })();`,
+            );
+          },
+        },
+
+        {
           name: "export default specifier",
           async fn() {
             const inputs = [
@@ -1839,6 +2110,105 @@ tests({
               export default (async () => {
                 const b = (await mod).default;
                 console.log(b);
+                return {};
+              })();`,
+            );
+          },
+        },
+
+        {
+          name: "export default type",
+          ignore: true,
+          async fn() {
+            const inputs = [
+              "testdata/typescript/export_default_type/a.ts",
+            ];
+            const output =
+              "dist/deps/1d17533ba9bc2895477b9ec6d18f796cf22e977c079b59ff72cdd18c835c8c21.js";
+
+            const graph = await bundler.createGraph(inputs);
+            assertEquals(graph, {
+              "testdata/typescript/export_default_type/a.ts": [
+                {
+                  dependencies: {
+                    "testdata/typescript/export_default_type/b.ts": {
+                      Import: {
+                        defaults: [
+                          "b",
+                        ],
+                      },
+                    },
+                  },
+                  export: {
+                    types: {
+                      b: "b",
+                    },
+                  },
+                  input: "testdata/typescript/export_default_type/a.ts",
+                  output,
+                  type: "Import",
+                },
+              ],
+              "testdata/typescript/export_default_type/b.ts": [
+                {
+                  dependencies: {},
+                  export: {
+                    default: "b",
+                  },
+                  input: "testdata/typescript/export_default_type/b.ts",
+                  output:
+                    "dist/deps/c1ecb8968b541b3a13d61cdac16d61c9255819f7b87300145a3fd0ea9e0d7bf7.js",
+                  type: "Import",
+                },
+              ],
+            });
+            const chunks = await bundler.createChunks(inputs, graph);
+            assertEquals(chunks, [
+              {
+                item: {
+                  history: [
+                    "testdata/typescript/export_default_type/a.ts",
+                  ],
+                  type: "Import",
+                },
+                dependencyItems: [
+                  {
+                    history: [
+                      "testdata/typescript/export_default_type/b.ts",
+                      "testdata/typescript/export_default_type/a.ts",
+                    ],
+                    type: "Import",
+                  },
+                ],
+              },
+            ]);
+            const bundles = await bundler.createBundles(chunks, graph);
+            assertEquals(Object.keys(bundles).length, 1);
+            const bundle = bundles[output] as string;
+
+            /* Current incorrect output:
+
+              const mod = (async () => {
+                const _default = b; // <-- wrong: b doesn't exist
+                                    // also, _default is unused?
+                return { default: b };
+              })();
+              export default (async () => {
+                const b = (await mod).default;
+                return {};
+              })();
+
+            */
+
+            assertEqualsIgnoreWhitespace(
+              bundle,
+              `/* testdata/typescript/export_default_type/b.ts */
+              const mod = (async () => {
+                const _default = undefined;
+                return { default: _default };
+              })();
+              export default (async () => {
+                const b = (await mod).default;
                 return {};
               })();`,
             );
