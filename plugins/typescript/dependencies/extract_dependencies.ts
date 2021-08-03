@@ -3,6 +3,10 @@ import { isURL } from "../../../_util.ts";
 import { DependencyType, ModuleData } from "../../plugin.ts";
 import type { Import } from "../../plugin.ts";
 
+type DependencyOptions = {
+  includeTypeOnly: boolean;
+};
+
 function hasModifier(
   modifiers: ts.ModifiersArray,
   modifier: ts.SyntaxKind,
@@ -17,6 +21,7 @@ function hasModifier(
  */
 export function typescriptExtractDependenciesTransformer(
   moduleData: ModuleData,
+  dependencyOptions: DependencyOptions,
 ) {
   function addImport(filePath: string, type: DependencyType): Import {
     const imports = moduleData.dependencies[filePath] ||= {};
@@ -31,6 +36,10 @@ export function typescriptExtractDependenciesTransformer(
           const importClause = node.importClause;
           const moduleSpecifier = node.moduleSpecifier;
           const isTypeOnly = importClause?.isTypeOnly;
+
+          if (isTypeOnly && !dependencyOptions.includeTypeOnly) {
+            return undefined;
+          }
 
           if (moduleSpecifier && ts.isStringLiteral(moduleSpecifier)) {
             filePath = moduleSpecifier.text;
@@ -85,6 +94,10 @@ export function typescriptExtractDependenciesTransformer(
           return node;
         } else if (ts.isExportDeclaration(node)) {
           const isTypeOnly = node.isTypeOnly;
+
+          if (isTypeOnly && !dependencyOptions.includeTypeOnly) {
+            return undefined;
+          }
 
           const moduleSpecifier = node.moduleSpecifier;
           if (moduleSpecifier && ts.isStringLiteral(moduleSpecifier)) {
@@ -332,7 +345,8 @@ export function typescriptExtractDependenciesTransformer(
 
 export function extractDependenciesFromSourceFile(
   sourceFile: ts.SourceFile,
-  compilerOptions?: ts.CompilerOptions,
+  compilerOptions: ts.CompilerOptions,
+  dependencyOptions: DependencyOptions,
 ) {
   const moduleData: ModuleData = {
     dependencies: {},
@@ -340,21 +354,8 @@ export function extractDependenciesFromSourceFile(
   };
   ts.transform(
     sourceFile,
-    [typescriptExtractDependenciesTransformer(moduleData)],
+    [typescriptExtractDependenciesTransformer(moduleData, dependencyOptions)],
     compilerOptions,
   );
   return moduleData;
-}
-
-export function extractDependencies(
-  fileName: string,
-  sourceText: string,
-  compilerOptions?: ts.CompilerOptions,
-) {
-  const sourceFile = ts.createSourceFile(
-    fileName,
-    sourceText,
-    ts.ScriptTarget.Latest,
-  );
-  return extractDependenciesFromSourceFile(sourceFile, compilerOptions);
 }

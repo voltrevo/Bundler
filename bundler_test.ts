@@ -1321,7 +1321,7 @@ tests({
           },
         },
         {
-          name: "import type",
+          name: "import type { includeTypeOnly: false }",
           async fn() {
             const inputs = [
               "testdata/typescript/import_type/a.ts",
@@ -1329,7 +1329,54 @@ tests({
             const output =
               "dist/deps/20b81bf7c10416fe8eea4a295de5afb4d3608cf24cb6bc67c4e13f4045828d28.js";
 
-            const graph = await bundler.createGraph(inputs);
+            const graph = await bundler.createGraph(inputs, {
+              includeTypeOnly: false,
+            });
+            assertEquals(graph, {
+              "testdata/typescript/import_type/a.ts": [{
+                export: {},
+                dependencies: {},
+                input: "testdata/typescript/import_type/a.ts",
+                output,
+                type: "Import",
+              }],
+            });
+            const chunks = await bundler.createChunks(inputs, graph);
+            assertEquals(chunks, [
+              {
+                item: {
+                  history: ["testdata/typescript/import_type/a.ts"],
+                  type: "Import",
+                },
+                dependencyItems: [],
+              },
+            ]);
+            const bundles = await bundler.createBundles(chunks, graph);
+            assertEquals(Object.keys(bundles).length, 1);
+            const bundle = bundles[output] as string;
+            assertEqualsIgnoreWhitespace(
+              bundle,
+              `/* testdata/typescript/import_type/a.ts */
+              export default (async () => {
+                const a = "a";
+                console.log(a);
+                return {};
+              })();`,
+            );
+          },
+        },
+        {
+          name: "import type { includeTypeOnly: true }",
+          async fn() {
+            const inputs = [
+              "testdata/typescript/import_type/a.ts",
+            ];
+            const output =
+              "dist/deps/20b81bf7c10416fe8eea4a295de5afb4d3608cf24cb6bc67c4e13f4045828d28.js";
+
+            const graph = await bundler.createGraph(inputs, {
+              includeTypeOnly: true,
+            });
             assertEquals(graph, {
               "testdata/typescript/import_type/a.ts": [{
                 export: {},
@@ -1387,7 +1434,6 @@ tests({
                 return {};
               })();
               export default (async () => {
-                const { B } = await mod;
                 const a = "a";
                 console.log(a);
                 return {};
